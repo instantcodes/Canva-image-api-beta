@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Canva API Studio — Image Generation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            canva: {
+              teal: '#00C4CC',
+              purple: '#7D2AE8',
+              dark: '#0F172A',
+              card: '#1E293B'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .canva-gradient {
+      background: linear-gradient(135deg, #00C4CC 0%, #7D2AE8 100%);
+    }
+    .canva-gradient-text {
+      background: linear-gradient(135deg, #00C4CC 0%, #7D2AE8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-canva-purple selection:text-white">
+
+  <!-- Top Navigation -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl canva-gradient flex items-center justify-center shadow-lg shadow-canva-purple/20">
+          <i class="fa-solid fa-wand-magic-sparkles text-white text-lg"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg tracking-tight flex items-center gap-2">
+            Canva API Studio
+            <span class="text-xs font-mono uppercase px-2 py-0.5 rounded-full bg-slate-800 text-canva-teal border border-slate-700">v1 REST</span>
+          </h1>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <!-- Mock Mode Toggle -->
+        <label class="flex items-center gap-2.5 cursor-pointer bg-slate-800/70 hover:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 transition">
+          <input type="checkbox" id="mockToggle" class="sr-only peer">
+          <div class="w-9 h-5 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all relative peer-checked:bg-canva-teal"></div>
+          <span class="text-xs font-medium text-slate-300">Demo Mode (Bypass CORS)</span>
+        </label>
+        
+        <a href="https://www.canva.dev/docs/connect/" target="_blank" class="text-xs text-slate-400 hover:text-white transition flex items-center gap-1.5">
+          <span>API Docs</span>
+          <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+    
+    <!-- Left Column: Controls & Configuration (5 cols) -->
+    <div class="lg:col-span-5 space-y-6">
+      
+      <!-- API Credentials Card -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+            <i class="fa-solid fa-key text-canva-teal"></i> Endpoint & Auth
+          </h2>
+          <span class="text-[11px] font-mono text-emerald-400 bg-emerald-950/50 border border-emerald-800/60 px-2 py-0.5 rounded">POST</span>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Target Endpoint URL</label>
+            <div class="relative">
+              <input type="text" id="endpointUrl" value="https://api.canva.com/rest/v1/image-generations" 
+                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-300 focus:outline-none focus:border-canva-teal transition">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Bearer Access Token</label>
+            <div class="relative">
+              <input type="password" id="apiKey" placeholder="cnv_pat_..." 
+                class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-3 pr-9 py-2 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-canva-teal transition">
+              <button type="button" onclick="toggleTokenVisibility()" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+                <i id="eyeIcon" class="fa-regular fa-eye text-xs"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Prompt & Generation Settings Card -->
+      <form id="generationForm" onsubmit="handleGenerate(event)" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-5">
+        <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-canva-purple"></i> Generation Parameters
+        </h2>
+
+        <!-- Prompt -->
+        <div>
+          <div class="flex justify-between items-center mb-1.5">
+            <label for="prompt" class="block text-xs font-medium text-slate-300">Image Prompt <span class="text-rose-500">*</span></label>
+            <button type="button" onclick="fillSamplePrompt()" class="text-[11px] text-canva-teal hover:underline">
+              Try sample prompt
+            </button>
+          </div>
+          <textarea id="prompt" rows="4" required
+            placeholder="Describe the image you want to generate in detail (e.g., A futuristic neon-lit workspace in Kerala with holographic monitors, cyberpunk style, 8k resolution)..."
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-canva-purple focus:ring-1 focus:ring-canva-purple transition resize-none"></textarea>
+        </div>
+
+        <!-- Style & Aspect Ratio Grid -->
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1.5">Style Preset</label>
+            <select id="stylePreset" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-canva-purple transition">
+              <option value="photorealistic">Photorealistic</option>
+              <option value="digital-art">Digital Art</option>
+              <option value="3d-model">3D Render</option>
+              <option value="anime">Anime / Illustration</option>
+              <option value="minimalist">Minimalist Vector</option>
+              <option value="cinematic">Cinematic</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1.5">Aspect Ratio</label>
+            <select id="aspectRatio" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-canva-purple transition">
+              <option value="1024x1024">1:1 Square (1024×1024)</option>
+              <option value="1792x1024">16:9 Landscape (1792×1024)</option>
+              <option value="1024x1792">9:16 Portrait (1024×1792)</option>
+              <option value="1350x1080">4:5 Social (1080×1350)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Number of Variations -->
+        <div>
+          <div class="flex justify-between text-xs mb-1.5">
+            <span class="font-medium text-slate-400">Number of Variations</span>
+            <span id="countValue" class="font-mono text-canva-teal font-semibold">1</span>
+          </div>
+          <input type="range" id="imageCount" min="1" max="4" value="1" 
+            oninput="document.getElementById('countValue').innerText = this.value"
+            class="w-full accent-canva-teal bg-slate-950 h-2 rounded-lg cursor-pointer">
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" id="generateBtn" class="w-full py-3 px-4 rounded-xl canva-gradient font-semibold text-sm text-white shadow-lg shadow-canva-purple/25 hover:opacity-95 active:scale-[0.99] transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-bolt"></i>
+          <span>Generate Image</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- Right Column: Output & Inspector (7 cols) -->
+    <div class="lg:col-span-7 flex flex-col gap-6">
+      
+      <!-- Canvas Preview Area -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex-1 flex flex-col min-h-[420px] shadow-xl relative overflow-hidden">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+            <i class="fa-regular fa-image text-canva-teal"></i> Output Canvas
+          </h2>
+          <div id="statusBadge" class="hidden text-xs px-2.5 py-1 rounded-full font-medium"></div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="flex-1 flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-slate-800 rounded-xl">
+          <div class="w-14 h-14 rounded-2xl bg-slate-800/80 flex items-center justify-center text-slate-500 mb-4">
+            <i class="fa-solid fa-paintbrush text-2xl"></i>
+          </div>
+          <h3 class="text-base font-medium text-slate-300 mb-1">No images generated yet</h3>
+          <p class="text-xs text-slate-500 max-w-sm">
+            Configure your Bearer token and prompt on the left, or switch on <strong>Demo Mode</strong> in the header to test the UI workflow.
+          </p>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="hidden flex-1 flex flex-col items-center justify-center text-center p-8">
+          <div class="w-12 h-12 rounded-full border-4 border-slate-800 border-t-canva-teal animate-spin mb-4"></div>
+          <p class="text-sm font-medium text-slate-200">Dispatching request to Canva API...</p>
+          <p class="text-xs text-slate-500 mt-1" id="loadingSubtext">Awaiting response payload</p>
+        </div>
+
+        <!-- Image Grid Result -->
+        <div id="resultGrid" class="hidden flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4 items-center justify-center">
+          <!-- Dynamically populated images -->
+        </div>
+      </div>
+
+      <!-- API Request / Response Inspector -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+        <div class="bg-slate-950/60 px-5 py-3 border-b border-slate-800 flex items-center justify-between">
+          <div class="flex items-center gap-4">
+            <button onclick="switchTab('payload')" id="tabPayload" class="text-xs font-semibold text-canva-teal border-b-2 border-canva-teal pb-1 transition">
+              Request Payload
+            </button>
+            <button onclick="switchTab('response')" id="tabResponse" class="text-xs font-semibold text-slate-400 hover:text-slate-200 pb-1 transition">
+              API Response
+            </button>
+          </div>
+          <button onclick="copyCode()" class="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition">
+            <i class="fa-regular fa-copy"></i> <span id="copyText">Copy JSON</span>
+          </button>
+        </div>
+        <div class="p-4 bg-slate-950 max-h-56 overflow-y-auto font-mono text-xs">
+          <pre id="codeDisplay" class="text-slate-300 whitespace-pre-wrap break-all">// Submit a request to inspect the JSON payload and response...</pre>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    let currentTab = 'payload';
+    let lastPayload = { status: "Ready" };
+    let lastResponse = { status: "No response yet" };
+
+    function toggleTokenVisibility() {
+      const input = document.getElementById('apiKey');
+      const icon = document.getElementById('eyeIcon');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
+      } else {
+        input.type = 'password';
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
+      }
+    }
+
+    function fillSamplePrompt() {
+      document.getElementById('prompt').value = "A sleek isometric 3D render of a modern developer workstation with dual monitors, glowing mechanical keyboard, warm ambient lighting, and tropical plants in the background, ultra-detailed.";
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      const tabPayload = document.getElementById('tabPayload');
+      const tabResponse = document.getElementById('tabResponse');
+      const codeDisplay = document.getElementById('codeDisplay');
+
+      if (tab === 'payload') {
+        tabPayload.className = "text-xs font-semibold text-canva-teal border-b-2 border-canva-teal pb-1 transition";
+        tabResponse.className = "text-xs font-semibold text-slate-400 hover:text-slate-200 pb-1 transition";
+        codeDisplay.textContent = JSON.stringify(lastPayload, null, 2);
+      } else {
+        tabResponse.className = "text-xs font-semibold text-canva-teal border-b-2 border-canva-teal pb-1 transition";
+        tabPayload.className = "text-xs font-semibold text-slate-400 hover:text-slate-200 pb-1 transition";
+        codeDisplay.textContent = JSON.stringify(lastResponse, null, 2);
+      }
+    }
+
+    function setStatus(text, type) {
+      const badge = document.getElementById('statusBadge');
+      badge.classList.remove('hidden', 'bg-emerald-950 text-emerald-400 border-emerald-800', 'bg-rose-950 text-rose-400 border-rose-800', 'bg-amber-950 text-amber-400 border-amber-800');
+      badge.textContent = text;
+      
+      if (type === 'success') {
+        badge.classList.add('bg-emerald-950', 'text-emerald-400', 'border', 'border-emerald-800');
+      } else if (type === 'error') {
+        badge.classList.add('bg-rose-950', 'text-rose-400', 'border', 'border-rose-800');
+      } else {
+        badge.classList.add('bg-amber-950', 'text-amber-400', 'border', 'border-amber-800');
+      }
+    }
+
+    async function handleGenerate(event) {
+      event.preventDefault();
+
+      const endpoint = document.getElementById('endpointUrl').value.trim();
+      const apiKey = document.getElementById('apiKey').value.trim();
+      const prompt = document.getElementById('prompt').value.trim();
+      const style = document.getElementById('stylePreset').value;
+      const size = document.getElementById('aspectRatio').value;
+      const count = parseInt(document.getElementById('imageCount').value, 10);
+      const isMock = document.getElementById('mockToggle').checked;
+
+      const [width, height] = size.split('x').map(Number);
+
+      // Construct request body
+      lastPayload = {
+        prompt: prompt,
+        style: style,
+        dimensions: { width, height },
+        n: count
+      };
+
+      // Update UI to Loading State
+      document.getElementById('emptyState').classList.add('hidden');
+      document.getElementById('resultGrid').classList.add('hidden');
+      document.getElementById('loadingState').classList.remove('hidden');
+      document.getElementById('generateBtn').disabled = true;
+      document.getElementById('generateBtn').classList.add('opacity-50', 'cursor-not-allowed');
+      switchTab('payload');
+
+      try {
+        if (isMock) {
+          // Simulate latency for Demo Mode
+          await new Promise(r => setTimeout(r, 1500));
+          const mockImages = Array.from({ length: count }, (_, idx) => ({
+            id: `gen_mock_${Date.now()}_${idx}`,
+            url: `https://picsum.photos/seed/${encodeURIComponent(prompt.slice(0, 15) + idx)}/${width}/${height}`,
+            width,
+            height
+          }));
+
+          lastResponse = {
+            status: 200,
+            mode: "DEMO_SIMULATION",
+            created: Math.floor(Date.now() / 1000),
+            data: mockImages
+          };
+
+          renderImages(mockImages);
+          setStatus('200 OK (Simulated)', 'success');
+        } else {
+          // Live API Call
+          if (!apiKey) {
+            throw new Error("Bearer Access Token is required for live API requests (or enable Demo Mode in the top bar).");
+          }
+
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify(lastPayload)
+          });
+
+          const data = await response.json().catch(() => ({ rawError: "Non-JSON response received" }));
+          lastResponse = {
+            httpStatus: response.status,
+            ...data
+          };
+
+          if (!response.ok) {
+            throw new Error(data.message || data.error?.message || `HTTP Error ${response.status}`);
+          }
+
+          // Handle standard array conventions (data or images array)
+          const images = data.data || data.images || (data.url ? [{ url: data.url }] : []);
+          if (images.length === 0) {
+            throw new Error("Request succeeded, but no image URLs were found in the response payload.");
+          }
+
+          renderImages(images);
+          setStatus(`${response.status} OK`, 'success');
+        }
+      } catch (err) {
+        lastResponse = {
+          error: true,
+          message: err.message,
+          hint: "If you encountered 'Failed to fetch', this is likely a browser CORS block from calling api.canva.com directly from client-side JavaScript, or the endpoint path does not exist."
+        };
+        renderError(err.message);
+        setStatus('Request Failed', 'error');
+      } finally {
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('generateBtn').disabled = false;
+        document.getElementById('generateBtn').classList.remove('opacity-50', 'cursor-not-allowed');
+        switchTab('response');
+      }
+    }
+
+    function renderImages(images) {
+      const grid = document.getElementById('resultGrid');
+      grid.innerHTML = '';
+      grid.className = `grid gap-4 flex-1 items-center ${images.length === 1 ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'}`;
+
+      images.forEach((img, idx) => {
+        const card = document.createElement('div');
+        card.className = "group relative rounded-xl overflow-hidden bg-slate-950 border border-slate-800 aspect-square flex items-center justify-center";
+        card.innerHTML = `
+          <img src="${img.url}" alt="Generated result ${idx + 1}" class="w-full h-full object-cover transition duration-300 group-hover:scale-105">
+          <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition flex items-end justify-between p-4">
+            <span class="text-xs font-mono text-slate-300">Var #${idx + 1}</span>
+            <a href="${img.url}" target="_blank" download="canva-gen-${idx + 1}.jpg" class="bg-white/10 hover:bg-white/20 backdrop-blur-md text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition">
+              <i class="fa-solid fa-download"></i> Open / Save
+            </a>
+         
